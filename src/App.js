@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import './App.css'
 import './database'
-// import { UnControlled as CodeMirror } from 'react-codemirror2'
+
 import CodeMirror from 'codemirror'
 
 import {
@@ -10,19 +10,20 @@ import {
 } from "../src/database"
 
 import './codemirrorcustom.css'
+import './theme.css'
 
 const generate = require('project-name-generator')
 
 // require('codemirror/lib/codemirror.css');
 require('codemirror/theme/idea.css');
-// require('codemirror/theme/neat.css');
+require('codemirror/theme/neat.css');
 require('codemirror/mode/python/python.js');
 require('codemirror/mode/javascript/javascript.js')
 
 let editorOptions = {
     mode: 'python',
     version: 2,
-    theme: 'idea',
+    theme: 'custom',
     lineNumbers: true,
     indentUnit: 4,
 }
@@ -59,7 +60,6 @@ class App extends Component {
             }).join('')
 
             // TODO: check database so we don't overwrite
-            console.log('New doc created:', newName)
 
             createNewDoc(newName, success => {
                 if(success){

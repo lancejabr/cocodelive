@@ -1,0 +1,38 @@
+.cms-custom span.cm-meta { color: #808000; }
+.cm-s-custom span.cm-number { color: dodgerblue; }
+.cm-s-custom span.cm-keyword { line-height: 1em; font-weight: bold; color: royalblue; }
+.cm-s-custom span.cm-atom { font-weight: bold; color: darkslategray; }
+.cm-s-custom span.cm-def { color: salmon; }
+.cm-s-custom span.cm-variable { color: darkslategray; }
+.cm-s-custom span.cm-variable-2 { color: darkslategray; }
+.cm-s-custom span.cm-variable-3, .cm-s-custom span.cm-type { color: darkslategray; }
+.cm-s-custom span.cm-property { color: mediumpurple; }
+.cm-s-custom span.cm-operator { color: darkslategray; }
+.cm-s-custom span.cm-comment { color: darkgray; }
+.cm-s-custom span.cm-string { color: forestgreen; }
+.cm-s-custom span.cm-string-2 { color: forestgreen; }
+.cm-s-custom span.cm-qualifier { color: #555; }
+.cm-s-custom span.cm-error { color: red; }
+.cm-s-custom span.cm-attribute { color: #0000FF; }
+.cm-s-custom span.cm-tag { color: darkslategray; }
+.cm-s-custom span.cm-link { color: #0000FF; }
+.cm-s-custom .CodeMirror-activeline-background { background: white; }
+
+.cm-s-custom span.cm-builtin { line-height: 1em; font-weight: bold; color: royalblue; }
+.cm-s-custom span.cm-bracket { color: #cc7; }
+.cm-s-custom span.cm-parenthesis { color: red; }
+.cm-s-custom  { font-family: monospace;}
+
+
+.cm-s-custom .CodeMirror-matchingbracket { outline:1px solid grey; color:darkslategray !important; }
+
+.CodeMirror-hints.custom {
+  font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+  color: #616569;
+  background-color: #ebf3fd !important;
+}
+
+.CodeMirror-hints.custom .CodeMirror-hint-active {
+  background-color: #a2b8c9 !important;
+  color: #5c6065 !important;
+}

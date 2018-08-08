@@ -15,7 +15,6 @@ body {
     margin: 0;
     padding: 0;
     font-family: monospace;
-    font-size: large;
 
     background-color: hsl(0, 0%, 96%);
 }
@@ -28,6 +27,7 @@ body {
 
     margin: 0;
     padding: 0;
+
 
     background-color: hsl(0, 0%, 96%);
 }
@@ -61,7 +61,7 @@ body {
 #runButton {
     right: 0;
 
-    padding: 9pt 18pt;
+    padding: 7pt 16pt;
 
     border: none;
     -webkit-border-radius: 5pt;
@@ -72,8 +72,8 @@ body {
     background-color: hsl(122, 50%, 50%);
     color: white;
 
+    font-size: large;
     text-align: center;
-    font-size: initial;
 
     cursor: pointer;
 }
@@ -94,7 +94,8 @@ body {
 
     background-color: rgb(240, 240, 240);
 
-    border: 1px solid black;
+    border-left: 1px solid gray;
+    border-top: 1px solid gray;
 
     font-family: monospace;
     font-size: large;

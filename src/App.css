@@ -1,28 +1,102 @@
-.App {
-  text-align: center;
+* {
+    box-sizing: border-box;
 }
 
-.App-logo {
-  animation: App-logo-spin infinite 20s linear;
-  height: 80px;
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
 }
 
-.App-header {
-  background-color: #222;
-  height: 150px;
-  padding: 20px;
-  color: white;
+body {
+    position: fixed;
+
+    margin: 0;
+    padding: 0;
+    font-family: monospace;
+    font-size: large;
+
+    background-color: hsl(0, 0%, 96%);
 }
 
-.App-title {
-  font-size: 1.5em;
+#app {
+    position: fixed;
+
+    height: 100vh;
+    width: 100vw;
+
+    margin: 0;
+    padding: 0;
+
+    background-color: hsl(0, 0%, 96%);
 }
 
-.App-intro {
-  font-size: large;
+#mainContainer {
+    position: relative;
+
+    height: 100%;
+
+    display: flex;
+    justify-content: space-around;
 }
 
-@keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.Column {
+    position: relative;
+
+    width: 50%;
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 0;
+}
+
+#runToolBar {
+    padding: 8pt;
+
+    border-left: 1px solid hsl(0, 0%, 86%);
+}
+
+#runButton {
+    right: 0;
+
+    padding: 9pt 18pt;
+
+    border: none;
+    -webkit-border-radius: 5pt;
+    -moz-border-radius: 5pt;
+    border-radius: 5pt;
+    outline: none;
+
+    background-color: hsl(122, 50%, 50%);
+    color: white;
+
+    text-align: center;
+    font-size: initial;
+
+    cursor: pointer;
+}
+
+#runButton:hover {
+    background-color: hsl(122, 50%, 55%);
+}
+
+#runButton:active {
+    background-color: hsl(122, 50%, 45%);
+}
+
+#console {
+    box-sizing: border-box;
+    padding: 10px;
+
+    flex: 1 1 0;
+
+    background-color: rgb(240, 240, 240);
+
+    border: 1px solid black;
+
+    font-family: monospace;
+    font-size: large;
+    text-align: left;
 }

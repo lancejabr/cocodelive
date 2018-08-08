@@ -8,17 +8,31 @@ const initConfig = {
     storageBucket: "co-code-live.appspot.com",
 }
 firebase.initializeApp(initConfig)
-let db = firebase.firestore()
+const firestore = firebase.firestore()
+ const settings = {
+    timestampsInSnapshots: true,
+ };
+firestore.settings(settings);
 
 const publicURL = 'https://alpha.cocode.live/'
 
 export function doc(id) {
-    return db.collection('live docs').doc(id)
+    return firestore.collection('live docs').doc(id.toLowerCase())
+}
+
+export class Doc {
+    constructor(id) {
+        this.docRef = firestore.collection('live docs').doc(id.toLowerCase())
+    }
+
+
 }
 
 export function createNewDoc(id, completion) {
     console.log('Creating doc', id)
     doc(id).set({
+        displayName: id,
+        activeUsers: 0,
         lines: [
             '# Welcome to your new document!',
             '# Anyone can access this document at the following url:',
@@ -35,10 +49,10 @@ export function createNewDoc(id, completion) {
     })
 }
 
-export function getLines(id, completion) {
+export function openDoc(id, completion) {
     doc(id).get().then(doc => {
         if(doc.exists) {
-            completion(doc.data().lines.join('\n'))
+            completion(doc.data())
         } else {
             console.log('Doc', id, 'does not exist')
             completion(null)

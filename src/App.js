@@ -6,7 +6,7 @@ import CodeMirror from 'codemirror'
 
 import {
     createNewDoc,
-    getLines
+    openDoc
 } from "../src/database"
 
 import './codemirrorcustom.css'
@@ -18,43 +18,6 @@ require('codemirror/theme/idea.css');
 // require('codemirror/theme/neat.css');
 require('codemirror/mode/python/python.js');
 require('codemirror/mode/javascript/javascript.js')
-
-let appStyle = {
-    boxSizing: 'border-box',
-    backgroundColor: 'rgb(246, 246, 246)',
-    position: 'fixed',
-    height: '100vh',
-    width: '100vw',
-    padding: '10px',
-    margin: '0',
-}
-
-let containerStyle = {
-    position: 'relative',
-
-    height: '100%',
-
-    display: 'flex',
-    justifyContent: 'space-around',
-}
-
-let codeBoxStyle = {
-    boxSizing: 'border-box',
-    padding: '10px',
-
-    height: '100%',
-    flex: '1 1 0',
-
-    backgroundColor: 'lightgray',
-
-    borderColor: 'black',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-
-    fontFamily: 'monospace',
-    fontSize: 'large',
-    textAlign: 'left',
-}
 
 let editorOptions = {
     mode: 'python',
@@ -105,9 +68,8 @@ class App extends Component {
             })
         } else {
             // load document
-            getLines(window.location.pathname.substring(1), function(txt) {
-                console.log(txt)
-                this.codeMirror.setValue(txt)
+            openDoc(window.location.pathname.substring(1), function(doc) {
+                this.codeMirror.setValue(doc.lines.join('\n'))
             }.bind(this))
         }
     }
@@ -119,20 +81,27 @@ class App extends Component {
     render() {
 
         return (
-            <div style={appStyle} className="App">
-                <div style={containerStyle}>
-                    <textarea
-                        style={codeBoxStyle}
-                        id={'editor'}
-                        value={
-                            this.hasDoc() ?
-                                '# Loading ' + window.location.pathname.substring(1) + '...'
-                                : '# Creating new document...'
-                        }
-                        onChange={() => {}}
-                    />
-                    <div style={codeBoxStyle}>
-                        Output here
+            <div id={'app'}>
+                <div id={'mainContainer'}>
+                    <div className={'Column'}>
+                        <textarea
+                            style={{flex: '1 1 0'}}
+                            id={'editor'}
+                            value={
+                                this.hasDoc() ?
+                                    '# Loading ' + window.location.pathname.substring(1) + '...'
+                                    : '# Creating new document...'
+                            }
+                            onChange={() => {}}
+                        />
+                    </div>
+                    <div className={'Column'}>
+                        <div id={'runToolBar'}>
+                            <button id={'runButton'}>&#9658;</button>
+                        </div>
+                        <div id={'console'}>
+                            Output here
+                        </div>
                     </div>
                 </div>
             </div>

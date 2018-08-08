@@ -3,17 +3,18 @@
 .CodeMirror {
     /* Set height, width, borders, and global font properties here */
     font-family: monospace;
-    font-size: normal;
+    font-size: small;
     text-align: left;
 
-    /*box-sizing: border-box;*/
-    height: 100%;
+    box-sizing: border-box;
+    /*height: 100%;*/
     /*width: 100%;*/
 
-    flex: 1 1 0;
-
-
     color: black;
+
+    overflow-x: scroll;
+
+    flex: 1 1 0;
 
     direction: ltr;
 }

@@ -1,7 +1,6 @@
 import firebase from 'firebase'
 
 const initConfig = {
-    apiKey: "AIzaSyBNBy3u5QrXr2YsZInf7OqgvalDK7y-qZk",
     authDomain: "co-code-live.firebaseapp.com",
     databaseURL: "https://co-code-live.firebaseio.com",
     projectId: "co-code-live",

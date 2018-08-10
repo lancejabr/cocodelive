@@ -54,30 +54,37 @@ body {
     flex: 1 1 0;
 }
 
+
+.Row {
+    display: flex;
+}
+
 #runToolBar {
     padding: 8pt;
 
     border-left: 1px solid hsl(0, 0%, 86%);
 }
 
-#runButton {
-    right: 0;
-
-    padding: 7pt 16pt;
-
+.Button {
     border: none;
     -webkit-border-radius: 5pt;
     -moz-border-radius: 5pt;
     border-radius: 5pt;
     outline: none;
 
-    background-color: hsl(122, 50%, 50%);
-    color: white;
+    font-family: monospace;
+
+    cursor: pointer;
 
     font-size: large;
     text-align: center;
+}
 
-    cursor: pointer;
+#runButton {
+    padding: 7pt 16pt;
+
+    background-color: hsl(122, 50%, 50%);
+    color: white;
 }
 
 #runButton:hover {
@@ -106,11 +113,23 @@ body {
 }
 
 #consoleHeader {
+    height: 50pt;
+    position: relative;
+    
     flex: 0 0 auto;
 
     padding: 2pt;
+    /*padding-top: 10pt;*/
 
     border-bottom: 1px solid hsl(0, 0%, 86%);
+    vertical-align: bottom;
+}
+
+#clearButton {
+    padding: 3pt 8pt;
+    font-size: small;
+    float: right;
+    background-color: gray;
 }
 
 #consoleBody {
@@ -118,10 +137,13 @@ body {
 
     overflow-x: auto;
     overflow-y: auto;
+
+    padding-bottom: 6pt;
 }
+
 .ConsoleOutput {
     padding: 2pt 4pt;
 
-    word-wrap: break-word;
-    display: flex;
+    /*word-wrap: break-word;*/
+    /*display: flex;*/
 }

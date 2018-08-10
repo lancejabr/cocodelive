@@ -1,7 +1,8 @@
 import firebase from 'firebase'
 
+// const firebase = require('/__/firebase/5.3.0/firebase-app.js')
+
 const initConfig = {
-    apiKey: "AIzaSyBNBy3u5QrXr2YsZInf7OqgvalDK7y-qZk",
     authDomain: "co-code-live.firebaseapp.com",
     databaseURL: "https://co-code-live.firebaseio.com",
     projectId: "co-code-live",
@@ -18,7 +19,7 @@ function execQueue(id) { return database.ref('exec_queue/' + id.toLowerCase()) }
 function output(id) { return database.ref('output/' + id.toLowerCase()) }
 
 export function createNewDoc(id, completion) {
-    console.log('Creating doc', id)
+    console.debug('Creating doc', id)
     liveDoc(id).set({
         displayName: id,
         activeUsers: 0,
@@ -30,46 +31,48 @@ export function createNewDoc(id, completion) {
             "print('Hello, World!')",
         ]
     }).then(() => {
-        console.log('Document created:', id)
+        console.debug('Document created:', id)
         completion(true)
     }).catch(error => {
-        console.log('Could not create:', error)
+        console.debug('Could not create:', error)
         completion(false)
     })
 }
 
 export function openDoc(id, completion) {
+    // liveDoc(id).onDisconnect().
     liveDoc(id).once('value').then(snapshot => {
         if(snapshot.val()) {
             completion(snapshot.val())
         } else {
-            console.log('Doc', id, 'does not exist')
+            console.debug('Doc', id, 'does not exist')
             completion(null)
         }
     }).catch(error => {
-        console.log('Could not getLines', error)
+        console.debug('Could not getLines', error)
     })
 }
 
 export function runDoc(id, onQueue, onStart, onFail) {
-    console.log('Attempting to queue', id)
+    console.debug('Attempting to queue', id)
 
     execQueue(id).set({
         z: 0,
     }).then(() => {
-        console.log('Document queued successfully')
+        console.debug('Document queued successfully')
         onQueue()
 
         execQueue(id).on('value', snapshot => {
             if(snapshot.val() === null){
                 // the script has started
+                console.debug('Document running')
                 onStart()
                 execQueue(id).off('value')
             }
         })
 
     }).catch(error => {
-        console.log('Could not queue document:', error)
+        console.debug('Could not queue document:', error)
         onFail()
     })
 }
@@ -77,6 +80,7 @@ export function runDoc(id, onQueue, onStart, onFail) {
 export function onOutputUpdate(id, onUpdate) {
     output(id).on('value', snapshot => {
         if(!snapshot.val()) return
+        console.debug('outputUpdate', snapshot.val())
         onUpdate(snapshot.val())
     })
 }

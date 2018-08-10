@@ -17,6 +17,11 @@ require('codemirror/theme/neat.css');
 require('codemirror/mode/python/python.js');
 require('codemirror/mode/javascript/javascript.js')
 
+let evilStrings = [
+    'Could not find platform dependent libraries <exec_prefix>',
+    'Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]',
+]
+
 let editorOptions = {
     mode: 'python',
     version: 2,
@@ -43,7 +48,7 @@ class App extends Component {
         }
 
         this.codeMirror.on('change', (editor, data) => {
-            console.log(data)
+            console.debug(data)
         })
 
         // make new doc if needed
@@ -80,7 +85,6 @@ class App extends Component {
             this.oldOutputSkipped = false
             db.onOutputUpdate(id, function(newOutput) {
 
-                console.log(newOutput)
                 // skip output from previous run
                 if(!this.oldOutputSkipped) {
                     this.oldOutputSkipped = true
@@ -106,11 +110,7 @@ class App extends Component {
                 }
 
                 if('stdout' in newOutput) {
-                    App.writeToConsole(newOutput.stdout, 2)
-                }
-
-                if('stderr' in newOutput) {
-                    App.writeToConsole(newOutput.stderr, 2)
+                    App.writeToConsole(newOutput.stdout + newOutput.stderr, 2)
                 }
 
             }.bind(this))
@@ -122,14 +122,23 @@ class App extends Component {
         App.setConsoleWaiting(false)
 
         if(inMsg === '') return
-        let msg = inMsg.replace('<', '&lt;').replace('>', '&gt;').replace(/(\r\n|\n|\r)/gm, '\n')
-        let msgLines = msg.split('\n').map(line => `<div>&gt;&nbsp;${line.trim()}</div>`)
+
+        let msg = inMsg
+        for(let s of evilStrings){
+            msg = msg.replace(s, '')
+        }
+        msg = msg.replace('<', '&lt;').replace('>', '&gt;').replace(/(\r\n|\n|\r)/gm, '\n').trim()
+        let msgLines = msg.split('\n').map(line => {
+            return `<div>${line}</div>`
+        })
 
         let newDiv = document.createElement('div')
-        newDiv.className = 'ConsoleOutput'
-        newDiv.innerHTML = '<div>&gt;&nbsp;</div>'.repeat(level-1) + `<div>${msgLines.join('')}</div>`
+        newDiv.classList.add('ConsoleOutput', 'Row')
+        newDiv.innerHTML = `<div>&gt;&nbsp;</div>`.repeat(level) + `<div>${msgLines.join('')}</div>`
 
-        document.getElementById('consoleBody').appendChild(newDiv)
+        let consoleBody = document.getElementById('consoleBody')
+        consoleBody.appendChild(newDiv)
+        consoleBody.scrollTop = consoleBody.scrollHeight
 
         if(msg.endsWith('...')){
             App.setConsoleWaiting(true)
@@ -144,6 +153,10 @@ class App extends Component {
         } else {
             clearInterval(App.consoleWaitInterval)
         }
+    }
+
+    static clearConsole(){
+        document.getElementById('consoleBody').innerHTML = ''
     }
 
     hasDoc() {
@@ -187,10 +200,15 @@ class App extends Component {
                     </div>
                     <div className={'Column'}>
                         <div id={'runToolBar'}>
-                            <button id={'runButton'} onClick={this.runClick.bind(this)}>&#9658;</button>
+                            <button className={'Button'} id={'runButton'} onClick={this.runClick.bind(this)}>&#9658;</button>
                         </div>
                         <div id={'console'}>
-                            <div id={'consoleHeader'}>Console</div>
+                            <div id={'consoleHeader'} className={'Row'}>
+                                Console
+                                <button className={'Button'} id={'clearButton'} onClick={App.clearConsole}>
+                                    clear
+                                </button>
+                            </div>
                             <div id={'consoleBody'}> </div>
                         </div>
                     </div>

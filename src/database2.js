@@ -9,21 +9,24 @@ const initConfig = {
 }
 firebase.initializeApp(initConfig)
 
-const database = firebase.database()
+
+const firestore = firebase.firestore()
+ const settings = {
+    timestampsInSnapshots: true,
+ };
+firestore.settings(settings);
 
 const publicURL = 'https://alpha.cocode.live/'
 
-function liveDoc(id) { return database.ref('live_docs/' + id.toLowerCase()) }
-function execQueue(id) { return database.ref('exec_queue/' + id.toLowerCase()) }
-function output(id) { return database.ref('output/' + id.toLowerCase()) }
+function liveDoc(id) { return firestore.collection('live docs').doc(id.toLowerCase()) }
 
-export function createNewDoc(id, completion) {
+exports.createNewDoc = function(id, completion) {
     console.log('Creating doc', id)
     liveDoc(id).set({
         displayName: id,
         activeUsers: 0,
         lines: [
-            '# Welcome to your new script!',
+            '# Welcome to your new document!',
             '# Anyone can access this document at the following url:',
             '# ' + publicURL + id,
             '',
@@ -38,10 +41,10 @@ export function createNewDoc(id, completion) {
     })
 }
 
-export function openDoc(id, completion) {
-    liveDoc(id).once('value').then(snapshot => {
-        if(snapshot.val()) {
-            completion(snapshot.val())
+exports.openDoc = function(id, completion) {
+    liveDoc(id).get().then(doc => {
+        if(doc.exists) {
+            completion(doc.data())
         } else {
             console.log('Doc', id, 'does not exist')
             completion(null)
@@ -51,32 +54,19 @@ export function openDoc(id, completion) {
     })
 }
 
-export function runDoc(id, onQueue, onStart, onFail) {
+exports.runDoc = function(id, completion) {
     console.log('Attempting to queue', id)
-
-    execQueue(id).set({
-        z: 0,
-    }).then(() => {
+    firestore.collection('exec_queue').doc(id.toLowerCase()).set({}).then(() => {
         console.log('Document queued successfully')
-        onQueue()
-
-        execQueue(id).on('value', snapshot => {
-            if(snapshot.val() === null){
-                // the script has started
-                onStart()
-                execQueue(id).off('value')
-            }
-        })
-
+        completion(true)
     }).catch(error => {
         console.log('Could not queue document:', error)
-        onFail()
+        completion(false)
     })
 }
 
-export function onOutputUpdate(id, onUpdate) {
-    output(id).on('value', snapshot => {
-        if(!snapshot.val()) return
-        onUpdate(snapshot.val())
+exports.onOutputUpdate = function(id, onUpdate) {
+    liveDoc(id).onSnapshot(doc => {
+
     })
 }

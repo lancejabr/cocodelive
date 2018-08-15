@@ -46,14 +46,19 @@ body {
 .Column {
     position: relative;
 
-    width: 50%;
-
     display: flex;
     flex-direction: column;
 
-    flex: 1 1 0;
+    /*flex: 1 1 0;*/
 }
 
+#left {
+    width: 56%;
+}
+
+#right {
+    width: 44%;
+}
 
 .Row {
     display: flex;
@@ -113,23 +118,25 @@ body {
 }
 
 #consoleHeader {
-    height: 50pt;
-    position: relative;
+    /*height: 50pt;*/
+    /*position: relative;*/
     
-    flex: 0 0 auto;
+    /*flex: 0 0 auto;*/
 
-    padding: 2pt;
-    /*padding-top: 10pt;*/
+    padding: 10pt 6pt 2pt;
 
     border-bottom: 1px solid hsl(0, 0%, 86%);
-    vertical-align: bottom;
 }
 
 #clearButton {
+    position:relative;
+    top: -5pt;
+    /*margin: auto;*/
+
     padding: 3pt 8pt;
     font-size: small;
     float: right;
-    background-color: gray;
+    /*background-color: gray;*/
 }
 
 #consoleBody {
@@ -144,6 +151,6 @@ body {
 .ConsoleOutput {
     padding: 2pt 4pt;
 
-    /*word-wrap: break-word;*/
+    word-wrap: break-word;
     /*display: flex;*/
 }

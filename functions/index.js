@@ -17,13 +17,13 @@ const functions = require('firebase-functions')
 //   </html>`);
 // });
 
-// exports.createNewDoc = functions.https.onRequest((req, res) => {
+// exports.createNewScript = functions.https.onRequest((req, res) => {
 //     let newName = generate().raw.map(val => {
 //                 return val.charAt(0).toUpperCase() + val.slice(1);
 //
 //     }).join('')
 //
-//     console.log('New doc created:', newName)
+//     console.log('New script created:', newName)
 //
 //
 //

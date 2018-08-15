@@ -20,7 +20,7 @@ const publicURL = 'https://alpha.cocode.live/'
 function liveDoc(id) { return firestore.collection('live docs').doc(id.toLowerCase()) }
 
 exports.createNewDoc = function(id, completion) {
-    console.log('Creating doc', id)
+    console.log('Creating script', id)
     liveDoc(id).set({
         displayName: id,
         activeUsers: 0,

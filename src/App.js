@@ -1,10 +1,11 @@
 import React, { Component } from 'react'
 import './App.css'
-import './database'
+import './script'
 
 import CodeMirror from 'codemirror'
 
-import * as db from './database'
+import * as db from './script'
+import { Script } from './script'
 
 import './codemirrorcustom.css'
 import './theme.css'
@@ -47,75 +48,111 @@ class App extends Component {
             this.codeMirror.setOption(key, editorOptions[key])
         }
 
-        this.codeMirror.on('change', (editor, data) => {
-            console.debug(data)
-        })
 
-        // make new doc if needed
-        if (window.location.pathname === '/') {
 
-            App.writeToConsole('Creating new document...')
+        db.setOnAuth(() => {
+            // make new script if needed
+            if (window.location.pathname === '/') {
 
-            let newName = generate().raw.map(val => {
-                return val.charAt(0).toUpperCase() + val.slice(1);
-            }).join('')
+                App.writeToConsole('Creating new document...')
 
-            // TODO: check database so we don't overwrite
+                let newName = generate().raw.map(val => {
+                    return val.charAt(0).toUpperCase() + val.slice(1);
+                }).join('')
 
-            db.createNewDoc(newName, success => {
-                if(success){
-                    window.location = window.location + newName
-                }
-            })
-        } else {
-            // load document
-            let id = window.location.pathname.substring(1)
-            App.writeToConsole('Loading ' + id + '...')
-            db.openDoc(id, function(doc) {
-                if(doc === null){
-                    // TODO: handle error
-                    return
-                }
+                // TODO: check database so we don't overwrite
 
-                this.doc = doc
-                this.codeMirror.setValue(doc.lines.join('\n'))
-                App.writeToConsole('Loaded ' + doc.displayName + '.')
-            }.bind(this))
-
-            this.oldOutputSkipped = false
-            db.onOutputUpdate(id, function(newOutput) {
-
-                // skip output from previous run
-                if(!this.oldOutputSkipped) {
-                    this.oldOutputSkipped = true
-                    return
-                }
-
-                if('error' in newOutput){
-                    switch(newOutput.error){
-                        case 1: // couldn't run script
-                            App.writeToConsole('The script could not be run.')
-                            break
-                        case 2: // script timeout
-                            App.writeToConsole('Script exceeded maximum allowed running time.')
-                            break
-                        default:
+                db.createNewScript(newName, success => {
+                    if(success){
+                        window.location = window.location + newName
                     }
-                }
+                })
+            } else {
+                // get script name from url
+                let id = window.location.pathname.substring(1)
+                this.script = new Script(id)
+                App.writeToConsole('Loading ' + id + '...')
 
-                if('returncode' in newOutput){
-                    App.writeToConsole('Script completed.')
-                    App.writeToConsole('Return code: ' + newOutput.returncode)
-                    App.writeToConsole('Program output:')
-                }
+                // load the script
+                this.script.open(function(data){
+                    if(data === null){
+                        // TODO: handle error
+                        return
+                    }
 
-                if('stdout' in newOutput) {
-                    App.writeToConsole(newOutput.stdout + newOutput.stderr, 2)
-                }
+                    // update code mirror text
+                    this.codeMirror.setValue(data.lines.join('\n'))
 
-            }.bind(this))
-        }
+                    // a handler to call when a line updates
+                    let lineHandler = function(line){
+                        this.script.updateLine(line.lineNo(), line.text)
+                    }.bind(this)
 
+                    // listen to existing lines
+                    // this.codeMirror.getDoc().eachLine(line => {
+                    //     line.on('change', (line, change) => {
+                    //         lineHandler(line)
+                    //     })
+                    // })
+
+                    // listen to new lines
+                    // this.codeMirror.on('renderLine', (codeMirror, line, element) => {
+                    //     console.log('render', line.lineNo())
+                    // })
+
+                    // when the number of lines changes, add new handlers
+                    this.lineCount = data.lines.length
+                    this.codeMirror.on('change', (editor, data) => {
+                        console.log(data)
+                        // console.log(l)
+
+                        let newLineCount = editor.getDoc().lineCount()
+                        this.script.setLineCount(newLineCount)
+
+                        for(let l = 0; l < editor.getDoc().lineCount(); l++){
+                            this.script.updateLine(l, editor.getDoc().getLine(l))
+                        }
+                    })
+
+
+                    App.writeToConsole('Loaded ' + data.displayName + '.')
+
+                }.bind(this))
+
+                this.oldOutputSkipped = false
+                db.onOutputUpdate(id, function(newOutput) {
+
+                    // skip output from previous run
+                    if(!this.oldOutputSkipped) {
+                        this.oldOutputSkipped = true
+                        return
+                    }
+
+                    if('error' in newOutput){
+                        switch(newOutput.error){
+                            case 1: // couldn't run script
+                                App.writeToConsole('The script could not be run.')
+                                break
+                            case 2: // script timeout
+                                App.writeToConsole('Script exceeded maximum allowed running time.')
+                                break
+                            default:
+                        }
+                    }
+
+                    if('returncode' in newOutput){
+                        App.writeToConsole('Script completed.')
+                        App.writeToConsole('Return code: ' + newOutput.returncode)
+                        App.writeToConsole('Program output:')
+                    }
+
+                    if('stdout' in newOutput) {
+                        App.writeToConsole(newOutput.stdout + newOutput.stderr, 2)
+                    }
+
+                }.bind(this))
+            }
+        })
     }
 
     static writeToConsole(inMsg, level=1) {
@@ -132,9 +169,13 @@ class App extends Component {
             return `<div>${line}</div>`
         })
 
+        App.waitingDiv = document.createElement('div')
+        App.waitingDiv.innerHTML = msgLines.join('')
+
         let newDiv = document.createElement('div')
         newDiv.classList.add('ConsoleOutput', 'Row')
-        newDiv.innerHTML = `<div>&gt;&nbsp;</div>`.repeat(level) + `<div>${msgLines.join('')}</div>`
+        newDiv.innerHTML = `<div>&gt;&nbsp;</div>`.repeat(level)
+        newDiv.appendChild(App.waitingDiv)
 
         let consoleBody = document.getElementById('consoleBody')
         consoleBody.appendChild(newDiv)
@@ -148,31 +189,35 @@ class App extends Component {
     static setConsoleWaiting(isWaiting) {
         if(isWaiting) {
             App.consoleWaitInterval = setInterval(() => {
-                document.getElementById('consoleBody').lastElementChild.innerHTML += '.'
+                App.waitingDiv.lastElementChild.innerHTML += '.'
             }, 500)
         } else {
+            App.waitingDiv = null
             clearInterval(App.consoleWaitInterval)
         }
     }
 
     static clearConsole(){
+        App.setConsoleWaiting(false)
         document.getElementById('consoleBody').innerHTML = ''
     }
 
     hasDoc() {
-        return this.doc !== undefined
+        return this.script !== undefined
     }
 
     docName() {
-        return this.doc.displayName
+        return this.script.displayName
     }
 
     runClick() {
-        if(!this.hasDoc()) return
+        if(!this.hasDoc()) {
+            App.writeToConsole('No script to run.')
+            return
+        }
 
         App.writeToConsole('Queueing script...')
-        db.runDoc(
-            this.docName(),
+        this.script.run(
             () => { // on queue
                 App.writeToConsole('Script queued successfully.')
                 App.writeToConsole('Waiting to run...')
@@ -190,7 +235,7 @@ class App extends Component {
         return (
             <div id={'app'}>
                 <div id={'mainContainer'}>
-                    <div className={'Column'}>
+                    <div className={'Column'} id={'left'}>
                         <textarea
                             style={{flex: '1 1 0'}}
                             id={'editor'}
@@ -198,18 +243,20 @@ class App extends Component {
                             onChange={() => {}}
                         />
                     </div>
-                    <div className={'Column'}>
+                    <div className={'Column'} id={'right'}>
                         <div id={'runToolBar'}>
                             <button className={'Button'} id={'runButton'} onClick={this.runClick.bind(this)}>&#9658;</button>
                         </div>
                         <div id={'console'}>
-                            <div id={'consoleHeader'} className={'Row'}>
-                                Console
+                            <div id={'consoleHeader'}>
                                 <button className={'Button'} id={'clearButton'} onClick={App.clearConsole}>
                                     clear
                                 </button>
+                                Console
                             </div>
                             <div id={'consoleBody'}> </div>
+                        </div>
+                        <div id={'chat'}>
                         </div>
                     </div>
                 </div>

@@ -40,8 +40,37 @@ export class Script {
     constructor(id){
         this.id = id.toLowerCase()
 
+        this.lines = null
+        this.displayName = null
+        this.activeUsers = null
+        // this.
+
         this.liveDocRef = script.ref('live_docs/' + this.id)
         this.linesRef = this.liveDocRef.child('lines')
+    }
+
+    create(id, completion) {
+        console.log('Creating script', id)
+        output(id).set({ // create dummy output for client completeness
+            'stdout': ''
+        })
+        liveDoc(id).set({
+            displayName: id,
+            activeUsers: 0,
+            lines: [
+                '# Welcome to your new script!',
+                '# Anyone can access this document at the following url:',
+                '# ' + publicURL + id,
+                '',
+                "print('Hello, World!')",
+            ]
+        }).then(() => {
+            console.log('Document created:', id)
+            completion(true)
+        }).catch(error => {
+            console.log('Could not create:', error)
+            completion(false)
+        })
     }
 
     open(completion) {
@@ -55,7 +84,7 @@ export class Script {
                 let data = snapshot.val()
                 this.lines = data.lines
                 this.displayName = data.displayName
-                this.activeusers = data.activeusers
+                this.activeUsers = data.activeUsers
 
                 console.log('Opened ' + name)
                 completion(this)
@@ -111,30 +140,6 @@ export class Script {
             this.lines.pop()
         }
     }
-}
-
-export function createNewScript(id, completion) {
-    console.log('Creating script', id)
-    output(id).set({ // create dummy output for client completeness
-        'stdout': ''
-    })
-    liveDoc(id).set({
-        displayName: id,
-        activeUsers: 0,
-        lines: [
-            '# Welcome to your new script!',
-            '# Anyone can access this document at the following url:',
-            '# ' + publicURL + id,
-            '',
-            "print('Hello, World!')",
-        ]
-    }).then(() => {
-        console.log('Document created:', id)
-        completion(true)
-    }).catch(error => {
-        console.log('Could not create:', error)
-        completion(false)
-    })
 }
 
 export function onOutputUpdate(id, onUpdate) {

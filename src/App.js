@@ -62,7 +62,7 @@ class App extends Component {
 
                 // TODO: check database so we don't overwrite
 
-                db.createNewScript(newName, success => {
+                Script.create(newName, success => {
                     if(success){
                         window.location = window.location + newName
                     }
@@ -104,7 +104,6 @@ class App extends Component {
                     this.lineCount = data.lines.length
                     this.codeMirror.on('change', (editor, data) => {
                         console.log(data)
-                        // console.log(l)
 
                         let newLineCount = editor.getDoc().lineCount()
                         this.script.setLineCount(newLineCount)
@@ -113,7 +112,6 @@ class App extends Component {
                             this.script.updateLine(l, editor.getDoc().getLine(l))
                         }
                     })
-
 
                     App.writeToConsole('Loaded ' + data.displayName + '.')
 

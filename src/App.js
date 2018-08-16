@@ -48,8 +48,6 @@ class App extends Component {
             this.codeMirror.setOption(key, editorOptions[key])
         }
 
-
-
         db.setOnAuth(() => {
             // make new script if needed
             if (window.location.pathname === '/') {
@@ -81,38 +79,42 @@ class App extends Component {
                     }
 
                     // update code mirror text
-                    this.codeMirror.setValue(data.lines.join('\n'))
+                    // this.lastLine
 
-                    // a handler to call when a line updates
-                    let lineHandler = function(line){
-                        this.script.updateLine(line.lineNo(), line.text)
-                    }.bind(this)
+                    this.script.onChange(function(change){
+                        let fr = change.r.f
+                        let to = change.r.t || change.r.f
+                        this.codeMirror.replaceRange(
+                            change.t,
+                            {line: fr.l, ch: fr.c},
+                            {line: to.l, ch: to.c},
+                            '*ignore'
+                        )
+                    }.bind(this))
 
-                    // listen to existing lines
-                    // this.codeMirror.getDoc().eachLine(line => {
-                    //     line.on('change', (line, change) => {
-                    //         lineHandler(line)
-                    //     })
-                    // })
+                    this.codeMirror.on('beforeChange', (editor, changeObj) => {
+                        // ignore the special event sent by us
+                        if(changeObj.origin === '*ignore') return
 
-                    // listen to new lines
-                    // this.codeMirror.on('renderLine', (codeMirror, line, element) => {
-                    //     console.log('render', line.lineNo())
-                    // })
+                        // cancel any other changes (they will be performed after db update)
+                        changeObj.cancel()
 
-                    // when the number of lines changes, add new handlers
-                    this.lineCount = data.lines.length
-                    this.codeMirror.on('change', (editor, data) => {
-                        console.log(data)
+                        // push change to database
+                        let change = {
+                            t: changeObj.text,
+                            r: {
+                                f: {l: changeObj.from.line, c: changeObj.from.ch}
+                            }
 
-                        let newLineCount = editor.getDoc().lineCount()
-                        this.script.setLineCount(newLineCount)
-
-                        for(let l = 0; l < editor.getDoc().lineCount(); l++){
-                            this.script.updateLine(l, editor.getDoc().getLine(l))
                         }
+                        if(changeObj.to !== changeObj.from) {
+                            change.r.t = {l: changeObj.to.line, c: changeObj.to.ch}
+                        }
+
+                        this.script.pushChange(change)
                     })
 
+                    // done loading
                     App.writeToConsole('Loaded ' + data.displayName + '.')
 
                 }.bind(this))

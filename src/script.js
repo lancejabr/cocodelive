@@ -43,13 +43,16 @@ export class Script {
         this.lines = null
         this.displayName = null
         this.activeUsers = null
-        // this.
 
         this.liveDocRef = script.ref('live_docs/' + this.id)
+        this.changesRef = this.liveDocRef.child('changes')
         this.linesRef = this.liveDocRef.child('lines')
+        this.lineRef = (l) => {
+            return this.liveDocRef.child('lines/' + l)
+        }
     }
 
-    create(id, completion) {
+    static create(id, completion) {
         console.log('Creating script', id)
         output(id).set({ // create dummy output for client completeness
             'stdout': ''
@@ -70,6 +73,20 @@ export class Script {
         }).catch(error => {
             console.log('Could not create:', error)
             completion(false)
+        })
+    }
+
+    onLineUpdate(onAdd, onChange, onRemove) {
+        this.linesRef.on('child_added', snapshot => {
+            onAdd(snapshot.key, snapshot.val())
+        })
+
+        this.linesRef.on('child_changed', snapshot => {
+            onChange(snapshot.key, snapshot.val())
+        })
+
+        this.linesRef.on('child_removed', snapshot => {
+            onRemove(snapshot.key)
         })
     }
 
@@ -121,22 +138,33 @@ export class Script {
         })
     }
 
-    line(l) {
-        return liveDoc(this.id).child('lines/' + l)
+    pushChange(change) {
+        this.changesRef.push(change).then(() => {
+            console.log('Change pushed')
+        }).catch(error => {
+            console.error('Could not push change', error)
+        })
+    }
+
+    onChange(onChange) {
+        this.changesRef.on('child_added', snapshot => {
+            onChange(snapshot.val())
+        })
     }
 
     updateLine(l, newText) {
         if(newText === this.lines[l]) return
 
-        this.line(l).set(newText)
+        // this.recentChanges.
+        this.lineRef(l).set(newText)
         this.lines[l] = newText
     }
 
     setLineCount(nLines) {
         if(nLines >= this.lines.length) return
 
-        for(let l = this.lines.length; l > this.lines.length - nLines; l--){
-            this.line(l-1).remove()
+        for(let l = this.lines.length; l > nLines; l--){
+            this.lineRef(l-1).remove()
             this.lines.pop()
         }
     }

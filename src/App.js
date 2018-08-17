@@ -18,32 +18,86 @@ require('codemirror/theme/neat.css');
 require('codemirror/mode/python/python.js');
 require('codemirror/mode/javascript/javascript.js')
 
-let editorOptions = {
-    mode: 'python',
-    version: 2,
-    theme: 'custom',
-    lineNumbers: true,
-    indentUnit: 4,
-}
 
 class App extends Component {
 
-    constructor(props) {
-        super(props)
+    loadScript(id) {
+        // get script name from url
+        // let id = window.location.pathname.substring(1)
+        this.script = new Script(id)
+        App.writeToConsole('Loading ' + id + '...')
 
+        this.script.onChange(function (change) {
+            let fr = change.r.f
+            let to = change.r.t || change.r.f
+            this.codeMirror.replaceRange(
+                change.t,
+                {line: fr.l, ch: fr.c},
+                {line: to.l, ch: to.c},
+                '*ignore'
+            )
+        }.bind(this))
+
+        // load the script
+        this.script.open(function(data) {
+            if (data === null) {
+                // TODO: handle error
+                return
+            }
+
+            if(window.location.pathname.substring(1) !== data.displayName) {
+                window.history.pushState({}, '', window.location.origin + '/' + data.displayName)
+                // done loading
+            }
+
+            App.writeToConsole('Loaded ' + data.displayName + '.')
+        }.bind(this))
     }
 
     componentDidMount() {
+
         // create the code editor and set it up
         this.codeMirror = CodeMirror.fromTextArea(document.getElementById('editor'))
         this.codeMirror.setSize(null, '100%')
 
-        // all options defined above
+        const editorOptions = {
+            mode: 'python',
+            version: 2,
+            theme: 'custom',
+            lineNumbers: true,
+            indentUnit: 4,
+        }
         for(let key in editorOptions) {
             this.codeMirror.setOption(key, editorOptions[key])
         }
 
-        db.setOnAuth(() => {
+        // intercept each change from code mirror
+        this.codeMirror.on('beforeChange', (editor, changeObj) => {
+            // ignore the special event sent by us
+            if (changeObj.origin === '*ignore') return
+
+            // cancel all user changes (they will be performed after db update)
+            changeObj.cancel()
+
+            // push change to database
+            let change = {
+                t: changeObj.text, // text of the change
+                r: { // replacement range
+                    f: {l: changeObj.from.line, c: changeObj.from.ch} // line and character
+                }
+
+            }
+            // append range end if different
+            if (changeObj.to !== changeObj.from) {
+                change.r.t = {l: changeObj.to.line, c: changeObj.to.ch}
+            }
+
+            // push to server
+            this.script.pushChange(change)
+        })
+
+        // when the server authenticates, load the script
+        db.setOnAuth(function(){
             // make new script if needed
             if (window.location.pathname === '/') {
 
@@ -53,101 +107,19 @@ class App extends Component {
                     return val.charAt(0).toUpperCase() + val.slice(1);
                 }).join('')
 
-                // TODO: check database so we don't overwrite
+                // TODO: check database so we don't overwrite? millions of names available...
 
-                Script.create(newName, success => {
-                    if(success){
-                        window.location = window.location + newName
+                Script.create(newName, function(success) {
+                    if (success) {
+                        window.history.pushState({}, '', window.location + newName)
+                        this.loadScript(newName)
                     }
-                })
-            } else {
-                // get script name from url
-                let id = window.location.pathname.substring(1)
-                this.script = new Script(id)
-                App.writeToConsole('Loading ' + id + '...')
-
-                // load the script
-                this.script.open(function(data){
-                    if(data === null){
-                        // TODO: handle error
-                        return
-                    }
-
-                    // update code mirror text
-                    // this.lastLine
-
-                    this.script.onChange(function(change){
-                        let fr = change.r.f
-                        let to = change.r.t || change.r.f
-                        this.codeMirror.replaceRange(
-                            change.t,
-                            {line: fr.l, ch: fr.c},
-                            {line: to.l, ch: to.c},
-                            '*ignore'
-                        )
-                    }.bind(this))
-
-                    this.codeMirror.on('beforeChange', (editor, changeObj) => {
-                        // ignore the special event sent by us
-                        if(changeObj.origin === '*ignore') return
-
-                        // cancel any other changes (they will be performed after db update)
-                        changeObj.cancel()
-
-                        // push change to database
-                        let change = {
-                            t: changeObj.text,
-                            r: {
-                                f: {l: changeObj.from.line, c: changeObj.from.ch}
-                            }
-
-                        }
-                        if(changeObj.to !== changeObj.from) {
-                            change.r.t = {l: changeObj.to.line, c: changeObj.to.ch}
-                        }
-
-                        this.script.pushChange(change)
-                    })
-
-                    // done loading
-                    App.writeToConsole('Loaded ' + data.displayName + '.')
-
                 }.bind(this))
-
-                // this.oldOutputSkipped = false
-                // db.onOutputUpdate(id, function(newOutput) {
-                //
-                //     // skip output from previous run
-                //     if(!this.oldOutputSkipped) {
-                //         this.oldOutputSkipped = true
-                //         return
-                //     }
-                //
-                //     if('error' in newOutput){
-                //         switch(newOutput.error){
-                //             case 1: // couldn't run script
-                //                 App.writeToConsole('The script could not be run.')
-                //                 break
-                //             case 2: // script timeout
-                //                 App.writeToConsole('Script exceeded maximum allowed running time.')
-                //                 break
-                //             default:
-                //         }
-                //     }
-                //
-                //     if('returncode' in newOutput){
-                //         App.writeToConsole('Script completed.')
-                //         App.writeToConsole('Return code: ' + newOutput.returncode)
-                //         App.writeToConsole('Program output:')
-                //     }
-                //
-                //     if('stdout' in newOutput) {
-                //         App.writeToConsole(newOutput.stdout + newOutput.stderr, 2)
-                //     }
-                //
-                // }.bind(this))
+            } else {
+                this.loadScript(window.location.pathname.substring(1))
             }
-        })
+
+        }.bind(this))
     }
 
     static writeToConsole(inMsg, level=1) {
@@ -210,6 +182,7 @@ class App extends Component {
             App.writeToConsole('No script to run.')
             return
         }
+
         App.writeToConsole('Script running...')
         document.getElementById('runButton').disabled = true
 

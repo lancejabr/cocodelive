@@ -37,56 +37,34 @@ function execQueue(id) { return script.ref('exec_queue/' + id.toLowerCase()) }
 function output(id) { return script.ref('output/' + id.toLowerCase()) }
 
 export class Script {
-    constructor(id){
-        this.id = id.toLowerCase()
-
-        this.lines = null
-        this.displayName = null
-        this.activeUsers = null
+    constructor(name){
+        this.id = name.toLowerCase()
 
         this.liveDocRef = script.ref('live_docs/' + this.id)
         this.changesRef = this.liveDocRef.child('changes')
-        this.linesRef = this.liveDocRef.child('lines')
-        this.lineRef = (l) => {
-            return this.liveDocRef.child('lines/' + l)
-        }
     }
 
-    static create(id, completion) {
-        console.log('Creating script', id)
-        output(id).set({ // create dummy output for client completeness
+    static create(name, completion) {
+        console.log('Creating script', name)
+        output(name).set({ // create dummy output for client completeness
             'stdout': ''
         })
-        liveDoc(id).set({
-            displayName: id,
+        liveDoc(name).set({
+            displayName: name,
             activeUsers: 0,
             lines: [
                 '# Welcome to your new script!',
                 '# Anyone can access this document at the following url:',
-                '# ' + publicURL + id,
+                '# ' + publicURL + name,
                 '',
                 "print('Hello, World!')",
             ]
         }).then(() => {
-            console.log('Document created:', id)
+            console.log('Document created:', name)
             completion(true)
         }).catch(error => {
             console.log('Could not create:', error)
             completion(false)
-        })
-    }
-
-    onLineUpdate(onAdd, onChange, onRemove) {
-        this.linesRef.on('child_added', snapshot => {
-            onAdd(snapshot.key, snapshot.val())
-        })
-
-        this.linesRef.on('child_changed', snapshot => {
-            onChange(snapshot.key, snapshot.val())
-        })
-
-        this.linesRef.on('child_removed', snapshot => {
-            onRemove(snapshot.key)
         })
     }
 
@@ -114,28 +92,8 @@ export class Script {
         })
     }
 
-    run(onQueue, onStart, onFail) {
-        let id = this.id
+    setIsRunning(isRunning) {
 
-        console.log('Attempting to queue', id)
-
-        execQueue(id).set(0).then(() => {
-            console.log(id + ' queued successfully')
-            onQueue()
-
-            execQueue(id).on('value', snapshot => {
-                if(snapshot.val() === null){
-                    // the script has started
-                    console.log('Document running')
-                    onStart()
-                    execQueue(id).off('value')
-                }
-            })
-
-        }).catch(error => {
-            console.log('Could not queue document:', error)
-            onFail()
-        })
     }
 
     pushChange(change) {
@@ -150,23 +108,6 @@ export class Script {
         this.changesRef.on('child_added', snapshot => {
             onChange(snapshot.val())
         })
-    }
-
-    updateLine(l, newText) {
-        if(newText === this.lines[l]) return
-
-        // this.recentChanges.
-        this.lineRef(l).set(newText)
-        this.lines[l] = newText
-    }
-
-    setLineCount(nLines) {
-        if(nLines >= this.lines.length) return
-
-        for(let l = this.lines.length; l > nLines; l--){
-            this.lineRef(l-1).remove()
-            this.lines.pop()
-        }
     }
 }
 

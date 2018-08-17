@@ -33,35 +33,31 @@ export function setOnAuth(onAuth) {
 }
 
 function liveDoc(id) { return script.ref('live_docs/' + id.toLowerCase()) }
-function execQueue(id) { return script.ref('exec_queue/' + id.toLowerCase()) }
-function output(id) { return script.ref('output/' + id.toLowerCase()) }
 
 export class Script {
-    constructor(name){
+    constructor(name) {
         this.id = name.toLowerCase()
 
         this.liveDocRef = script.ref('live_docs/' + this.id)
         this.changesRef = this.liveDocRef.child('changes')
+        this.isRunningRef = this.liveDocRef.child('isRunning')
+        this.outputRef = this.liveDocRef.child('output')
     }
 
     static create(name, completion) {
         console.log('Creating script', name)
-        output(name).set({ // create dummy output for client completeness
-            'stdout': ''
-        })
         liveDoc(name).set({
             displayName: name,
             activeUsers: 0,
-            lines: [
-                '# Welcome to your new script!',
-                '# Anyone can access this document at the following url:',
-                '# ' + publicURL + name,
-                '',
-                "print('Hello, World!')",
-            ]
+            isRunning: false,
         }).then(() => {
-            console.log('Document created:', name)
-            completion(true)
+            liveDoc(name).child('changes').push(
+                {
+                    t: '# Welcome to your new script!\n# Anyone can access this document at the following url:\n# ' + publicURL + name + "\n\nprint('Hello, World!')",
+                    r: {
+                        f: {l: 0, c: 0}
+                    }
+                })
         }).catch(error => {
             console.log('Could not create:', error)
             completion(false)
@@ -75,14 +71,11 @@ export class Script {
         console.log('Opening ' + name)
 
         liveDoc(id).once('value').then(snapshot => {
-            if(snapshot.val()) {
+            if (snapshot.val()) {
                 let data = snapshot.val()
-                this.lines = data.lines
-                this.displayName = data.displayName
-                this.activeUsers = data.activeUsers
 
                 console.log('Opened ' + name)
-                completion(this)
+                completion(data)
             } else {
                 console.log('Doc', name, 'does not exist')
                 completion(null)
@@ -93,7 +86,15 @@ export class Script {
     }
 
     setIsRunning(isRunning) {
+        this.isRunningRef.set(isRunning).catch(error => {
+            console.log('Could not set is running', error)
+        })
+    }
 
+    onStatus(statusCallback) {
+        this.isRunningRef.on('value', snapshot => {
+            statusCallback(snapshot.val())
+        })
     }
 
     pushChange(change) {
@@ -109,12 +110,19 @@ export class Script {
             onChange(snapshot.val())
         })
     }
-}
 
-export function onOutputUpdate(id, onUpdate) {
-    output(id).on('value', snapshot => {
-        if(!snapshot.val()) return
-        console.log('outputUpdate', snapshot.val())
-        onUpdate(snapshot.val())
-    })
+    output(output) {
+        this.outputRef.push(output).then(() => {
+            console.log('Output pushed', output)
+        }).catch(error => {
+            console.error('Could not push output', error)
+        })
+    }
+
+    onOutputAfter(lastKey, onOutput) {
+        this.outputRef.orderByKey().startAt(lastKey).on('child_added', snapshot => {
+            if(snapshot.key === lastKey)  return
+            onOutput(snapshot.val())
+        })
+    }
 }

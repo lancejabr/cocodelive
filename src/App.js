@@ -27,7 +27,7 @@ class App extends Component {
         this.script = new Script(id)
         App.writeToConsole('Loading ' + id + '...')
 
-        this.script.onChange(function (change) {
+        this.script.onChange(function(change) {
             let fr = change.r.f
             let to = change.r.t || change.r.f
             this.codeMirror.replaceRange(
@@ -38,6 +38,15 @@ class App extends Component {
             )
         }.bind(this))
 
+        this.script.onStatus(function(isRunning) {
+            document.getElementById('runButton').disabled = isRunning
+            if(isRunning){
+                App.writeToConsole('Script running...')
+            } else {
+                App.setConsoleWaiting(false)
+            }
+        }.bind(this))
+
         // load the script
         this.script.open(function(data) {
             if (data === null) {
@@ -45,10 +54,20 @@ class App extends Component {
                 return
             }
 
+            console.log(data)
+
             if(window.location.pathname.substring(1) !== data.displayName) {
                 window.history.pushState({}, '', window.location.origin + '/' + data.displayName)
                 // done loading
             }
+
+            let outputKeys = Object.keys(data.output)
+            let lastOutputKey = outputKeys[outputKeys.length-1]
+            console.log('out', outputKeys)
+            this.script.onOutputAfter(lastOutputKey,
+                function(newOutput) {
+                    App.writeToConsole(newOutput)
+                })
 
             App.writeToConsole('Loaded ' + data.displayName + '.')
         }.bind(this))
@@ -127,6 +146,8 @@ class App extends Component {
 
         if(inMsg === '') return
 
+        console.log(inMsg)
+
         // sanitize
         let msg = inMsg
         msg = msg.replace('<', '&lt;').replace('>', '&gt;').replace(/(\r\n|\n|\r)/gm, '\n').trim()
@@ -183,8 +204,7 @@ class App extends Component {
             return
         }
 
-        App.writeToConsole('Script running...')
-        document.getElementById('runButton').disabled = true
+        this.script.setIsRunning(true)
 
         let request = new XMLHttpRequest()
         const url = 'https://us-central1-co-code-live.cloudfunctions.net/pyRun'
@@ -197,30 +217,30 @@ class App extends Component {
             if(request.readyState !== 4) return
 
             if(request.status === 200) {
-                // App.writeToConsole(request.responseText)
 
                 let newOutput = JSON.parse(request.responseText)
 
                 if('error' in newOutput){
                     switch(newOutput.error){
                         case 1: // couldn't run script
-                            App.writeToConsole('The script could not be run.')
+                            this.script.output('The script could not be run.')
                             break
                         case 2: // script timeout
-                            App.writeToConsole('Script exceeded maximum allowed running time.')
+                            this.script.output('Script exceeded maximum allowed running time.')
                             break
                         default:
+                            this.script.output('Could not run the script.')
                     }
                 }
 
                 if('code' in newOutput){
-                    App.writeToConsole('Script completed.')
-                    App.writeToConsole('Return code: ' + newOutput.code)
+                    this.script.output('Script completed.')
+                    this.script.output('Return code: ' + newOutput.code)
                 }
 
                 if('stdout' in newOutput) {
-                    App.writeToConsole('Program output:')
-                    App.writeToConsole(newOutput.stdout, 2)
+                    this.script.output('Program output:')
+                    this.script.output(newOutput.stdout)
                 }
 
                 if('stderr' in newOutput) {
@@ -234,17 +254,19 @@ class App extends Component {
                     }
                     msg = msg.trim()
                     if(msg !== '') {
-                        App.writeToConsole('Program errors:')
-                        App.writeToConsole(msg, 2)
+                        this.script.output('Program errors:')
+                        this.script.output(msg)
                     }
                 }
 
             } else {
-                App.writeToConsole('Could not run script.')
+                this.script.output('Could not run the script')
                 console.log(request)
             }
-            document.getElementById('runButton').disabled = false
-        }
+
+            this.script.setIsRunning(false)
+        }.bind(this)
+
         request.send(params)
     }
 

@@ -61,13 +61,15 @@ class App extends Component {
                 // done loading
             }
 
-            let outputKeys = Object.keys(data.output)
-            let lastOutputKey = outputKeys[outputKeys.length-1]
-            console.log('out', outputKeys)
-            this.script.onOutputAfter(lastOutputKey,
-                function(newOutput) {
+            let lastOutputKey = null
+            if('output' in data) {
+                let outputKeys = Object.keys(data.output)
+                lastOutputKey = outputKeys[outputKeys.length - 1]
+            }
+            this.script.onOutput(newOutput => {
                     App.writeToConsole(newOutput)
-                })
+                },
+                lastOutputKey)
 
             App.writeToConsole('Loaded ' + data.displayName + '.')
         }.bind(this))

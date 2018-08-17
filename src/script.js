@@ -57,7 +57,13 @@ export class Script {
                     r: {
                         f: {l: 0, c: 0}
                     }
-                })
+                }
+            ).then(() => {
+                completion(true)
+            }).catch(error => {
+                console.log('Could not create:', error)
+                completion(false)
+            })
         }).catch(error => {
             console.log('Could not create:', error)
             completion(false)
@@ -73,7 +79,6 @@ export class Script {
         liveDoc(id).once('value').then(snapshot => {
             if (snapshot.val()) {
                 let data = snapshot.val()
-
                 console.log('Opened ' + name)
                 completion(data)
             } else {
@@ -119,10 +124,10 @@ export class Script {
         })
     }
 
-    onOutputAfter(lastKey, onOutput) {
-        this.outputRef.orderByKey().startAt(lastKey).on('child_added', snapshot => {
-            if(snapshot.key === lastKey)  return
-            onOutput(snapshot.val())
-        })
+    onOutput(onOutput, lastKey) {
+            this.outputRef.orderByKey().startAt(lastKey || '').on('child_added', snapshot => {
+                if (snapshot.key === lastKey) return
+                onOutput(snapshot.val())
+            })
     }
 }

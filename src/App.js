@@ -18,11 +18,6 @@ require('codemirror/theme/neat.css');
 require('codemirror/mode/python/python.js');
 require('codemirror/mode/javascript/javascript.js')
 
-let evilStrings = [
-    'Could not find platform dependent libraries <exec_prefix>',
-    'Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]',
-]
-
 let editorOptions = {
     mode: 'python',
     version: 2,
@@ -119,38 +114,38 @@ class App extends Component {
 
                 }.bind(this))
 
-                this.oldOutputSkipped = false
-                db.onOutputUpdate(id, function(newOutput) {
-
-                    // skip output from previous run
-                    if(!this.oldOutputSkipped) {
-                        this.oldOutputSkipped = true
-                        return
-                    }
-
-                    if('error' in newOutput){
-                        switch(newOutput.error){
-                            case 1: // couldn't run script
-                                App.writeToConsole('The script could not be run.')
-                                break
-                            case 2: // script timeout
-                                App.writeToConsole('Script exceeded maximum allowed running time.')
-                                break
-                            default:
-                        }
-                    }
-
-                    if('returncode' in newOutput){
-                        App.writeToConsole('Script completed.')
-                        App.writeToConsole('Return code: ' + newOutput.returncode)
-                        App.writeToConsole('Program output:')
-                    }
-
-                    if('stdout' in newOutput) {
-                        App.writeToConsole(newOutput.stdout + newOutput.stderr, 2)
-                    }
-
-                }.bind(this))
+                // this.oldOutputSkipped = false
+                // db.onOutputUpdate(id, function(newOutput) {
+                //
+                //     // skip output from previous run
+                //     if(!this.oldOutputSkipped) {
+                //         this.oldOutputSkipped = true
+                //         return
+                //     }
+                //
+                //     if('error' in newOutput){
+                //         switch(newOutput.error){
+                //             case 1: // couldn't run script
+                //                 App.writeToConsole('The script could not be run.')
+                //                 break
+                //             case 2: // script timeout
+                //                 App.writeToConsole('Script exceeded maximum allowed running time.')
+                //                 break
+                //             default:
+                //         }
+                //     }
+                //
+                //     if('returncode' in newOutput){
+                //         App.writeToConsole('Script completed.')
+                //         App.writeToConsole('Return code: ' + newOutput.returncode)
+                //         App.writeToConsole('Program output:')
+                //     }
+                //
+                //     if('stdout' in newOutput) {
+                //         App.writeToConsole(newOutput.stdout + newOutput.stderr, 2)
+                //     }
+                //
+                // }.bind(this))
             }
         })
     }
@@ -160,16 +155,16 @@ class App extends Component {
 
         if(inMsg === '') return
 
+        // sanitize
         let msg = inMsg
-        for(let s of evilStrings){
-            msg = msg.replace(s, '')
-        }
         msg = msg.replace('<', '&lt;').replace('>', '&gt;').replace(/(\r\n|\n|\r)/gm, '\n').trim()
+        if(msg === '') return
         let msgLines = msg.split('\n').map(line => {
             return `<div>${line}</div>`
         })
 
         App.waitingDiv = document.createElement('div')
+        App.waitingDiv.classList.add('ConsoleOutOutput')
         App.waitingDiv.innerHTML = msgLines.join('')
 
         let newDiv = document.createElement('div')
@@ -215,19 +210,69 @@ class App extends Component {
             App.writeToConsole('No script to run.')
             return
         }
+        App.writeToConsole('Script running...')
+        document.getElementById('runButton').disabled = true
 
-        App.writeToConsole('Queueing script...')
-        this.script.run(
-            () => { // on queue
-                App.writeToConsole('Script queued successfully.')
-                App.writeToConsole('Waiting to run...')
-            },
-            () => { // on run start
-                App.writeToConsole('Script running...')
-            },
-            () => { // on fail
-                App.writeToConsole('Script could not be run.')
-            })
+        let request = new XMLHttpRequest()
+        const url = 'https://us-central1-co-code-live.cloudfunctions.net/pyRun'
+
+        let params = JSON.stringify({ code: this.codeMirror.getValue('\n') })
+        request.open("POST", url, true)
+        request.setRequestHeader("Content-Type", "application/json")
+
+        request.onreadystatechange = function() {
+            if(request.readyState !== 4) return
+
+            if(request.status === 200) {
+                // App.writeToConsole(request.responseText)
+
+                let newOutput = JSON.parse(request.responseText)
+
+                if('error' in newOutput){
+                    switch(newOutput.error){
+                        case 1: // couldn't run script
+                            App.writeToConsole('The script could not be run.')
+                            break
+                        case 2: // script timeout
+                            App.writeToConsole('Script exceeded maximum allowed running time.')
+                            break
+                        default:
+                    }
+                }
+
+                if('code' in newOutput){
+                    App.writeToConsole('Script completed.')
+                    App.writeToConsole('Return code: ' + newOutput.code)
+                }
+
+                if('stdout' in newOutput) {
+                    App.writeToConsole('Program output:')
+                    App.writeToConsole(newOutput.stdout, 2)
+                }
+
+                if('stderr' in newOutput) {
+                    const evilStrings = [
+                        'Could not find platform dependent libraries <exec_prefix>',
+                        'Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]',
+                    ]
+                    let msg = newOutput.stderr
+                    for(let s of evilStrings){
+                        msg = msg.replace(s, '')
+                    }
+                    msg = msg.trim()
+                    if(msg !== '') {
+                        App.writeToConsole('Program errors:')
+                        App.writeToConsole(msg, 2)
+                    }
+                }
+
+            } else {
+                App.writeToConsole('Could not run script.')
+                console.log(request)
+            }
+            document.getElementById('runButton').disabled = false
+        }
+        request.send(params)
     }
 
     render() {

@@ -50,11 +50,10 @@ class App extends Component {
         // load the script
         this.script.open(function(data) {
             if (data === null) {
-                // TODO: handle error
-                return
+                window.location = window.location.origin
             }
 
-            console.log(data)
+            this.hasScript = true
 
             if(window.location.pathname.substring(1) !== data.displayName) {
                 window.history.pushState({}, '', window.location.origin + '/' + data.displayName)
@@ -76,6 +75,11 @@ class App extends Component {
     }
 
     componentDidMount() {
+
+        this.hasScript = false
+
+        document.getElementById('chatInput').addEventListener('input', this.onChatInput.bind(this))
+        document.getElementById('chatInput').addEventListener('keydown', this.onChatKeyUp.bind(this))
 
         // create the code editor and set it up
         this.codeMirror = CodeMirror.fromTextArea(document.getElementById('editor'))
@@ -148,8 +152,6 @@ class App extends Component {
 
         if(inMsg === '') return
 
-        console.log(inMsg)
-
         // sanitize
         let msg = inMsg
         msg = msg.replace('<', '&lt;').replace('>', '&gt;').replace(/(\r\n|\n|\r)/gm, '\n').trim()
@@ -192,84 +194,34 @@ class App extends Component {
         document.getElementById('consoleBody').innerHTML = ''
     }
 
-    hasDoc() {
-        return this.script !== undefined
-    }
-
-    docName() {
-        return this.script.displayName
-    }
-
     runClick() {
-        if(!this.hasDoc()) {
+        if(!this.hasScript) {
             App.writeToConsole('No script to run.')
             return
         }
 
-        this.script.setIsRunning(true)
+        this.script.run(this.codeMirror.getValue('\n'))
+    }
 
-        let request = new XMLHttpRequest()
-        const url = 'https://us-central1-co-code-live.cloudfunctions.net/pyRun'
+    onChatInput() {
+        document.getElementById('chatButton').disabled = document.getElementById('chatInput').textContent === ''
+    }
 
-        let params = JSON.stringify({ code: this.codeMirror.getValue('\n') })
-        request.open("POST", url, true)
-        request.setRequestHeader("Content-Type", "application/json")
+    onChatKeyUp(event) {
+        if(event.shiftKey) return
 
-        request.onreadystatechange = function() {
-            if(request.readyState !== 4) return
+        if(event.code === 'Enter') {
+            event.preventDefault()
+            this.chatSend()
+        }
+    }
 
-            if(request.status === 200) {
-
-                let newOutput = JSON.parse(request.responseText)
-
-                if('error' in newOutput){
-                    switch(newOutput.error){
-                        case 1: // couldn't run script
-                            this.script.output('The script could not be run.')
-                            break
-                        case 2: // script timeout
-                            this.script.output('Script exceeded maximum allowed running time.')
-                            break
-                        default:
-                            this.script.output('Could not run the script.')
-                    }
-                }
-
-                if('code' in newOutput){
-                    this.script.output('Script completed.')
-                    this.script.output('Return code: ' + newOutput.code)
-                }
-
-                if('stdout' in newOutput) {
-                    this.script.output('Program output:')
-                    this.script.output(newOutput.stdout)
-                }
-
-                if('stderr' in newOutput) {
-                    const evilStrings = [
-                        'Could not find platform dependent libraries <exec_prefix>',
-                        'Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]',
-                    ]
-                    let msg = newOutput.stderr
-                    for(let s of evilStrings){
-                        msg = msg.replace(s, '')
-                    }
-                    msg = msg.trim()
-                    if(msg !== '') {
-                        this.script.output('Program errors:')
-                        this.script.output(msg)
-                    }
-                }
-
-            } else {
-                this.script.output('Could not run the script')
-                console.log(request)
-            }
-
-            this.script.setIsRunning(false)
-        }.bind(this)
-
-        request.send(params)
+    chatSend() {
+        let input = document.getElementById('chatInput')
+        let txt = input.textContent
+        if(txt === '') return
+        this.script.output(txt)
+        input.textContent = ''
     }
 
     render() {
@@ -299,6 +251,11 @@ class App extends Component {
                             <div id={'consoleBody'}> </div>
                         </div>
                         <div id={'chat'}>
+                            <div id={'chatBody'}/>
+                            <div className={'Row'}>
+                                <div contentEditable={true} id={'chatInput'}/>
+                                <button disabled={true} className={'Button'} id={'chatButton'} onClick={this.chatSend.bind(this)}>Send</button>
+                            </div>
                         </div>
                     </div>
                 </div>

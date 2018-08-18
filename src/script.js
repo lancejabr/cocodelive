@@ -20,7 +20,7 @@ firebase.auth().signInAnonymously().then(cred => {
     console.log('Done authenticating')
 })
 
-const script = firebase.database()
+const database = firebase.database()
 
 const publicURL = 'https://alpha.cocode.live/'
 
@@ -28,17 +28,16 @@ export function setOnAuth(onAuth) {
     firebase.auth().onAuthStateChanged(user => {
         if(user){
             onAuth()
+            user.getIdToken()
         }
     })
 }
-
-function liveDoc(id) { return script.ref('live_docs/' + id.toLowerCase()) }
 
 export class Script {
     constructor(name) {
         this.id = name.toLowerCase()
 
-        this.liveDocRef = script.ref('live_docs/' + this.id)
+        this.liveDocRef = database.ref('live_docs/' + this.id)
         this.changesRef = this.liveDocRef.child('changes')
         this.isRunningRef = this.liveDocRef.child('isRunning')
         this.outputRef = this.liveDocRef.child('output')
@@ -46,12 +45,13 @@ export class Script {
 
     static create(name, completion) {
         console.log('Creating script', name)
-        liveDoc(name).set({
+        const thisRef = database.ref('live_docs/' + name.toLowerCase())
+        thisRef.set({
             displayName: name,
             activeUsers: 0,
             isRunning: false,
         }).then(() => {
-            liveDoc(name).child('changes').push(
+            thisRef.child('changes').push(
                 {
                     t: '# Welcome to your new script!\n# Anyone can access this document at the following url:\n# ' + publicURL + name + "\n\nprint('Hello, World!')",
                     r: {
@@ -71,12 +71,10 @@ export class Script {
     }
 
     open(completion) {
-        // liveDoc(id).onDisconnect().
         let name = this.id
-        let id = this.id
         console.log('Opening ' + name)
 
-        liveDoc(id).once('value').then(snapshot => {
+        this.liveDocRef.once('value').then(snapshot => {
             if (snapshot.val()) {
                 let data = snapshot.val()
                 console.log('Opened ' + name)
@@ -88,6 +86,73 @@ export class Script {
         }).catch(error => {
             console.log('Could not open doc', error)
         })
+    }
+
+    run(codeTxt) {
+        this.setIsRunning(true)
+
+        let request = new XMLHttpRequest()
+        const url = 'https://us-central1-co-code-live.cloudfunctions.net/pyRun'
+
+        let params = JSON.stringify({ code: codeTxt })
+        request.open("POST", url, true)
+        request.setRequestHeader("Content-Type", "application/json")
+
+        request.onreadystatechange = function(){
+            if(request.readyState !== 4) return
+
+            if(request.status === 200) {
+
+                let newOutput = JSON.parse(request.responseText)
+
+                if('error' in newOutput){
+                    switch(newOutput.error){
+                        case 1: // couldn't run script
+                            this.output('The script could not be run.')
+                            break
+                        case 2: // script timeout
+                            this.output('Script exceeded maximum allowed running time.')
+                            break
+                        default:
+                            this.output('Could not run the script.')
+                    }
+                }
+
+                if('code' in newOutput){
+                    this.output('Script completed.')
+                    this.output('Return code: ' + newOutput.code)
+                }
+
+                if('stdout' in newOutput) {
+                    this.output('Program output:')
+                    this.output(newOutput.stdout)
+                }
+
+                if('stderr' in newOutput) {
+                    const evilStrings = [
+                        'Could not find platform dependent libraries <exec_prefix>',
+                        'Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]',
+                    ]
+                    let msg = newOutput.stderr
+                    for(let s of evilStrings){
+                        msg = msg.replace(s, '')
+                    }
+                    msg = msg.trim()
+                    if(msg !== '') {
+                        this.output('Program errors:')
+                        this.output(msg)
+                    }
+                }
+
+            } else {
+                this.output('Could not run the script')
+                console.log(request)
+            }
+
+            this.setIsRunning(false)
+        }.bind(this)
+
+        request.send(params)
     }
 
     setIsRunning(isRunning) {
@@ -125,9 +190,9 @@ export class Script {
     }
 
     onOutput(onOutput, lastKey) {
-            this.outputRef.orderByKey().startAt(lastKey || '').on('child_added', snapshot => {
-                if (snapshot.key === lastKey) return
-                onOutput(snapshot.val())
-            })
+        this.outputRef.orderByKey().startAt(lastKey || '').on('child_added', snapshot => {
+            if (snapshot.key === lastKey) return
+            onOutput(snapshot.val())
+        })
     }
 }

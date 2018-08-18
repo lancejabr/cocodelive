@@ -58,6 +58,8 @@ body {
 
 #right {
     width: 44%;
+    padding-bottom: 10pt;
+    border-left: 1px solid hsl(0, 0%, 86%);
 }
 
 .Row {
@@ -67,7 +69,6 @@ body {
 #runToolBar {
     padding: 8pt;
 
-    border-left: 1px solid hsl(0, 0%, 86%);
 }
 
 .Button {
@@ -110,7 +111,6 @@ body {
 
     background-color: rgb(240, 240, 240);
 
-    border-left: 1px solid hsl(0, 0%, 86%);
     border-top: 1px solid hsl(0, 0%, 86%);
     border-bottom: 1px solid hsl(0, 0%, 86%);
 
@@ -162,4 +162,52 @@ body {
 
 .ConsoleOutOutput {
     word-wrap: break-word;
+}
+
+#chat {
+    padding: 6pt;
+    flex: 1 1 0;
+}
+
+#chatInput {
+    outline-width: 1pt;
+    border: 1px solid lightgray;
+    border-radius: 4pt;
+    width: available;
+    padding: 4pt;
+    background-color: white;
+    resize: none;
+    font-size: large;
+    flex: 1;
+    max-height: 6em;
+    overflow: auto;
+}
+
+#chatButton {
+    background-color: hsl(217, 90%, 55%);
+    color: white;
+    float: right;
+    line-height: 10pt;
+    vertical-align: center;
+    padding: 6.5pt;
+    margin-top: auto;
+    margin-left: 6pt;
+    flex: 0;
+}
+
+#chatButton:hover {
+    background-color: hsl(217, 90%, 61%);
+}
+
+#chatButton:active {
+    background-color: hsl(217, 90%, 51%);
+}
+
+#chatButton:disabled {
+    background-color: hsl(217, 0%, 70%);
+    cursor: not-allowed;
+}
+
+#chatBody {
+    height: available;
 }

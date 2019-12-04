@@ -239,7 +239,7 @@ class App extends Component {
                     </div>
                     <div className={'Column'} id={'right'}>
                         <div id={'runToolBar'}>
-                            <button className={'Button'} id={'runButton'} onClick={this.runClick.bind(this)}>&#9658;</button>
+                            <button className={'Button'} id={'runButton'} onClick={this.runClick.bind(this)}>Run<br/>Shift+Enter</button>
                         </div>
                         <div id={'console'}>
                             <div id={'consoleHeader'}>
@@ -256,9 +256,22 @@ class App extends Component {
                                 <div contentEditable={true} id={'chatInput'}/>
                                 <button disabled={true} className={'Button'} id={'chatButton'} onClick={this.chatSend.bind(this)}>Send</button>
                             </div>
+
                         </div>
                     </div>
                 </div>
+                <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"> </script>
+                <ins
+                    id={'ad0'}
+                    className="adsbygoogle"
+                    style={{display:"block"}}
+                    data-ad-client={"ca-pub-7118913205971524"}
+                    data-ad-slot={"9978372467"}
+                    data-ad-format={"auto"}
+                    data-full-width-responsive={"true"}> </ins>
+                <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
             </div>
         );
     }

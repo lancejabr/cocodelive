@@ -132,6 +132,8 @@ export class Script {
                     const evilStrings = [
                         'Could not find platform dependent libraries <exec_prefix>',
                         'Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]',
+                        'Could not find platform independent libraries <prefix>',
+                        'ImportError: No module named site',
                     ]
                     let msg = newOutput.stderr
                     for(let s of evilStrings){

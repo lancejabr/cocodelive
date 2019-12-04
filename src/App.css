@@ -166,7 +166,7 @@ body {
 
 #chat {
     padding: 6pt;
-    flex: 1 1 0;
+    flex: 0;
 }
 
 #chatInput {
@@ -210,4 +210,8 @@ body {
 
 #chatBody {
     height: available;
+}
+
+#ad0 {
+    height: 100px;
 }

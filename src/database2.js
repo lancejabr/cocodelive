@@ -10,9 +10,9 @@ firebase.initializeApp(initConfig)
 
 
 const firestore = firebase.firestore()
- const settings = {
-    timestampsInSnapshots: true,
- };
+const settings = {
+timestampsInSnapshots: true,
+};
 firestore.settings(settings);
 
 const publicURL = 'https://alpha.cocode.live/'
